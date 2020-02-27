@@ -1,0 +1,9 @@
+<input type="text" id="myText" value="Some text...">
+<script>
+  var myText = document.getElementById("myText");
+  myText.addEventListener("keydown", event => {
+    if (event.key == "Q" || event.key == "W" || event.key == "X") {
+      event.preventDefault();
+    }
+  });
+</script>

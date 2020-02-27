@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  </head>
+  <body>
+    <p id="out"></p>
+    <script>
+      'use strict';
+      let out = document.querySelector('p');
+
+      function loadScript(src, callback) {
+        let script = document.createElement('script');
+        script.src = src;
+      
+        script.onload = () => callback(null, script);
+        script.onerror = () => callback(new Error(`Script load error for ${src}`));
+      
+        document.head.append(script);
+      }
+
+      function loadScripts(arr, callback){
+        
+      }
+
+      loadScripts(['script-1.js', 'script-2.js', 'script-3.js'], (err, results) =>
+        out.innerHTML = results.map(s => s.src).join("<br/>"))     
+
+      loadScript('script-1.js', (error, script) => {
+        if (error) {
+          console.error( error ); 
+        } else {
+          const message = `Cool!, the script '${script.src}' is loaded: "${hello()}"`;
+          out.innerHTML = message;
+          console.log(message);
+
+          loadScript('script-2.js', (error, script) => {
+            if (error) {
+              console.error( error ); 
+            } else {
+              const message = `Great!, the script '${script.src}' is loaded: "${world()}"`;
+              out.innerHTML += `<br/>${message}`;
+              console.log(message);
+              loadScript('script-3.js', (error, script) => {
+                if (error) {
+                  console.error( error );
+                } else {
+                  const message = `Unbelievable!, the script '${script.src}' is loaded: "${ull()}"`;
+                  out.innerHTML += `<br/>${message}`;
+                  console.log(message);
+                  // ...continue after all scripts are loaded 
+                }
+              });
+            }
+          })
+        }
+      });
+      </script>      
+  </body>  
+</html>

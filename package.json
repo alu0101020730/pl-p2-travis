@@ -1,0 +1,34 @@
+{
+  "name": "sol",
+  "version": "1.0.0",
+  "description": "Take a look at the function `loadScript(src)`, that loads a script with the given `src`:",
+  "main": "script-1.js",
+  "private": true,
+  "scripts": {
+    "publish": "git ci -am 2019 && git push origin master",
+    "test": "http-server -o load-script.html",
+    "start": "npm run build; cd dist && http-server",
+    "start:dev": "webpack-dev-server",
+    "build": "webpack",
+    "clean": "rm -f dist/main.js dist/script*.js dist/favicon.ico",
+    "gh-pages": "npm run build && gh-pages -d dist -b gh-pages"
+  },
+  "keywords": [
+    "webpack",
+    "async-js",
+    "ULL",
+    "ESIT"
+  ],
+  "author": "Casiano Rodriguez-Leon <crguezl@ull.edu.es> (https://github.com/crguezl)",
+  "license": "ISC",
+  "dependencies": {
+    "async-es": "^3.2.0",
+    "gh-pages": "^2.2.0"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^5.1.1",
+    "webpack": "^4.41.6",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
+  }
+}
