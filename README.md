@@ -1,301 +1,350 @@
-## Deployments
+# EVENT HANDLERS
 
-* [https://ull-esit-pl.github.io/async-js-series-webpack/](https://ull-esit-pl.github.io/async-js-series-webpack/)
-* [https://ull-esit-pl.github.io/async-js-series-webpack/load-script.html](https://ull-esit-pl.github.io/async-js-series-webpack/load-script.html)
+El sistema notifica activamente cuando realizamos una acción, en los exploradores eso ocurre porque se registran funciones que recogen estos eventos.
+
+> \<p>Este documento es para probar el addEventListener\</p>
+ \<script>
+  window.addEventListener("click", () => {
+ &nbsp;&nbsp; console.log("¿Llamaste?");
+  });
+ \</script>
+
+La variable `window` es un objeto que representa la ventana del explorador, cuando se le aplica el `addEventListener`, se ejecuta el segundo argumento si el evento ocurrido coincide con el tipo de evento del primer argumento.
 
 
-## The loadScript function
+# EVENTS AND DOM NODES
 
-Take a look at the function `loadScript(src)`, that loads a script with the given `src`:
+Todos los eventos se almacenan en el dominio en el que han ocurrido, por ejemplo, si el evento se registra en un botón, el `addEventListener` tendrá que ser llamado a partir de ese botón.
 
-```js
-    function loadScript(src) {
-      // creates a <script> tag and append it to the page
-      // this causes the script with given src to start loading and run when complete
-      let script = document.createElement('script');
-      script.src = src;
-      document.head.append(script);
-    }
-```
+>\<button>Clickeame\</button>
+\<p>Ningun manejador de eventos aquí.\</p>
+\<script>
+  let button = document.querySelector("button");
+  button.addEventListener("click", () => {
+   &nbsp;&nbsp;console.log("Botón clickeado");
+  });
+\</script>
 
-(See [https://javascript.info/callbacks](https://javascript.info/callbacks) for more details)
+También existe otro metodo que permite eliminar los eventos, `removeEventListener`
 
-It appends to the document the new, dynamically created, tag `<script src="…">` with given `src`. The browser automatically starts loading it and executes when complete.
+>\<button>Una vez\</button>
+\<script>
+  let button = document.querySelector("button");
+  function once() {
+  &nbsp;&nbsp;console.log("Hecho");
+  &nbsp;&nbsp;button.removeEventListener("click", once);
+  }
+  button.addEventListener("click", once);
+\</script>
 
-We can use this function like this:
+La función que se le pasa a `removeEventListener` tiene que ser la misma que se le pasa también a `addEventListener`.
 
-```js
-    // load and execute the script at the given path
-    loadScript('/my/script.js');
-```
+# EVENT OBJECTS
 
-The script is executed *asynchronously*, as it starts loading now, but runs later, when the function has already finished.
+Los objetos de evento almacenan información adicional que nos permite averiguar que tipo de acción se realizó, por ejemplo:
 
-If there’s any code below `loadScript(…)`, it doesn’t wait until the script loading finishes.
+>\<button>Clickea con los 3 botones\</button>
+\<script>
+  let button = document.querySelector("button");
+  button.addEventListener("mousedown", event => {
+     &nbsp;&nbsp;if (event.button == 0) {
+      &nbsp;&nbsp; &nbsp;&nbsp; console.log("Left button");
+     &nbsp;&nbsp;} else if (event.button == 1) {
+      &nbsp;&nbsp; &nbsp;&nbsp; console.log("Middle button");
+     &nbsp;&nbsp;} else if (event.button == 2) {
+      &nbsp;&nbsp; &nbsp;&nbsp; console.log("Right button");
+    &nbsp;&nbsp;}
+  });
+\</script>
 
-```js
-    loadScript('/my/script.js');
-    // the code below loadScript
-    // doesn't wait for the script loading to finish
-    // ...
-```
+La información almacenada también difiere por el tipo de objeto también.
 
-Let’s add a callback function as a second argument to loadScript that should execute when the script loads. What if the script loading fails? Our callback should be able to react on that. Here’s an improved version of `loadScript`:
+# PROPAGACIÓN
 
-```js
-      function loadScript(src, callback) {
-        let script = document.createElement('script');
-        script.src = src;
-      
-        script.onload = () => callback(null, script);
-        script.onerror = () => callback(new Error(`Script load error for ${src}`));
-      
-        document.head.append(script);
-      }
-```
+Para la mayor parte de tipos de eventos, los manejadores de eventos registrados en nodos con hijos, también recibirán el evento que pasó en el hijo. Por ejemplo si clickeas un botón dentro de un párrafo, el manejador de eventos del párrafo también verá el evento del click.
+  
+Sin embargo, si el párrafo y el botón tienen manejadores de eventos, el más manejador más especifico(el del botón) irá primero. El evento se propaga hacia afuera, desde el nodo donde pasó hacia su nodo padre y así hasta llegar a la raíz del documento. Finalmente cuando todos han registrado el evento, se van ejecutando de uno en uno.
 
-## Loading Several Scripts Sequentially
+Esta propagación puede ser detenida con el método `stopPropagation`  
+Si clickeas con el botón izquierdo se detendrá la propagación, con el resto de botones se propagará hacia el párrafo.
 
-And so, if we want to load several scripts, each one using the functions defined in the former ones we have to express our dependencies introducing a callback argument and nesting the succesive callbacks inside the callbacks:
+>\<p>Un párrafo con un  \<button>botón\</button>.\</p>
+\<script>
+  let para = document.querySelector("p");
+  let button = document.querySelector("button");
+  para.addEventListener("mousedown", () => {
+  &nbsp;&nbsp;console.log("Párrafo");
+  });
+  button.addEventListener("mousedown", event => {
+    &nbsp;&nbsp;console.log("Ratón");
+   &nbsp;&nbsp; if (event.button == 0) event.stopPropagation();
+  });
+\</script>
 
-```js
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-  </head>
-  <body>
-    <p id="out"></p>
-    <script>
-      'use strict';
-      let out = document.querySelector('p');
+La mayor parte de los eventos tienen una propiedad de objetivo que dice en que nodo fue originado. Esto se usa para asegurar que no manejas el evento accidentalmente propagado. También se usa para reducir código, en vez de escribir varios manejadores para varios botones, puedes usar un solo manejador para todos.
 
-      function loadScript(src, callback) {
-        let script = document.createElement('script');
-        script.src = src;
-      
-        script.onload = () => callback(null, script);
-        script.onerror = () => callback(new Error(`Script load error for ${src}`));
-      
-        document.head.append(script);
-      }
-           
-      loadScript('/script-1.js', (error, script) => {
-        if (error) {
-          console.error( error ); 
-        } else {
-          const message = `Cool!, the script '${script.src}' is loaded: "${hello()}"`;
-          out.innerHTML = message;
-          console.log(message);
+>\<button>A\</button>
+\<button>B\</button>
+\<button>C\</button>
+\<script>
+  document.body.addEventListener("click", event => {
+  &nbsp;&nbsp; if (event.target.nodeName == "BUTTON") {
+    &nbsp;&nbsp; &nbsp;&nbsp; console.log("Botón", event.target.textContent);
+  &nbsp;&nbsp;   }
+  });
+\</script>
 
-          loadScript('/script-2.js', (error, script) => {
-            if (error) {
-              console.error( error ); 
-            } else {
-              const message = `Great!, the script '${script.src}' is loaded: "${world()}"`;
-              out.innerHTML += `<br/>${message}`;
-              console.log(message);
-              loadScript('script-3.js', (error, script) => {
-                if (error) {
-                  console.error( error );
-                } else {
-                  const message = `Unbelievable!, the script '${script.src}' is loaded: "${ull()}"`;
-                  out.innerHTML += `<br/>${message}`;
-                  console.log(message);
-                  // ...continue after all scripts are loaded 
-                }
-              });
-            }
-          })
-        }
-      });
-      </script>      
-  </body>  
-</html>
-```
+# ACCIONES POR DEFECTO
 
-That’s sometimes called *callback hell* or *pyramid of doom.* (imagen del libro https://javascript.info)
+Muchos eventos tienen acciones por defecto, como por ejemplo cuando clickeas un link, te redirige a la página, esto se puede evitar usando `preventDefault`.
 
-<div class="image__ratio" style="padding-top:59.743040685224834%">
-</div>
-<object type="image/svg+xml" data="https://javascript.info//article/callbacks/callback-hell.svg" width="467" height="279" class="image__image">
+>\<a href="https://developer.mozilla.org/">MDN\</a>
+\<script>
+  let link = document.querySelector("a");
+  link.addEventListener("click", event => {
+    &nbsp;&nbsp;event.preventDefault();
+  });
+\</script>
 
-  <img src="https://javascript.info/article/callbacks/callback-hell.svg" alt="" width="467" height="279">
+Este link no te llevará a la página.
+`Dependiendo del explorador algunos eventos por defecto no pueden ser interceptados.`
 
-</object>
+## EVENTOS DE TECLADO
 
-## Async-es: The series method
+Cuando presionas una tecla el explorador lanza un evento de "keydown", cuando la levantas lanza "keyup"
 
-A pure ESM version of Async is available as <a href="https://www.npmjs.com/package/async-es" rel="nofollow"><code>async-es</code></a>.
+>\<p>La página se vuelve violeta cuando presionas la tecla v\</p>
+\<script>
+  window.addEventListener("keydown", event => {
+  &nbsp;&nbsp;if (event.key == "v") {
+     &nbsp;&nbsp;&nbsp;&nbsp;document.body.style.background = "violet";
+   &nbsp;&nbsp; }
+  });
+  window.addEventListener("keyup", event => {
+   &nbsp;&nbsp; if (event.key == "v") {
+      &nbsp;&nbsp;&nbsp;&nbsp;document.body.style.background = "";
+   &nbsp;&nbsp; }
+  });
+\</script>
 
-We can use the `series` method of [async-es](https://www.npmjs.com/package/async-es)
-to avoid the *callback hell* / *pyramid of doom*:
+Las combinaciones de teclas como shift, control, alt o cmd en mac también se aplican a los eventos de teclado, no es lo mismo presionar la tecla 1 que presionar shift-1 que devuelve "!"
+  
+Dichas teclas también tienen su propio evento, `shiftKey`, `ctrlKey`, `altKey`
 
-```
-[~/.../load-script-seq(master)]$ pwd -P
-/Users/casiano/local/src/javascript/learning/async/load-script-seq
-[~/.../load-script-seq(master)]$ ls -l src/index.js
--rw-r--r--  1 casiano  staff  574 25 feb 11:43 src/index.js
-```
+> \<p>Presiona Control-Espacio\</p>
+\<script>
+  window.addEventListener("keydown", event => {
+  &nbsp;&nbsp;if (event.key == " " && event.ctrlKey) {
+  &nbsp;&nbsp;&nbsp;&nbsp;console.log("Presionado");
+   &nbsp;&nbsp; }
+  });
+\</script>
 
-```js
-import { series } from "async-es";
 
-function loadScript(src, callback) {
-    let script = document.createElement('script');
-    script.src = src;
 
-    script.onload = () => callback(null, script);
-    script.onerror = () => callback(new Error(`Script load error for ${src}`));
+# EVENTOS DE RATÓN
 
-    document.head.append(script);
+Presionar el botón del ratón lanza el evento `mousedown` y levantarlo `mouseup`
+Despues del evento `mouseup`, el evento `click` es lanzado en el nodo que contuvo el `mousedown` y el `mouseup`. Por ejemplo, si presiono dentro de un párrafo y suelto el botón en otro párrafo, el evento click será lanzado en el nodo que contiene ambos párrafos.
+  
+Si es un doble click, se lanza el evento `dblclick`. Tambien se pueden obtener las coordenadas X e Y del click del evento lanzado por el ratón.
+` clientX y clientY contienen las coordenadas en pixeles relativas a la esquina superior izquierda de la ventana
+` pageX y pageY contienen las coordenadas en pixeles relativas a la esquina superior izquierda de todo el documento
+
+>\<style>
+  body {
+   &nbsp;&nbsp; height: 200px;
+  &nbsp;&nbsp;  background: beige;
+  }
+  .dot {
+   &nbsp;&nbsp; height: 8px; width: 8px;
+   &nbsp;&nbsp; border-radius: 4px; /` rounds corners `/
+  &nbsp;&nbsp;  background: blue;
+  &nbsp;&nbsp;  position: absolute;
+  }
+\</style>
+\<script>
+  window.addEventListener("click", event => {
+   &nbsp;&nbsp; let dot = document.createElement("div");
+   &nbsp;&nbsp; dot.className = "dot";
+  &nbsp;&nbsp;  dot.style.left = (event.pageX - 4) + "px";
+  &nbsp;&nbsp;  dot.style.top = (event.pageY - 4) + "px";
+   &nbsp;&nbsp; document.body.appendChild(dot);
+  });
+\</script>
+
+# MOVIMIENTO DEL RATÓN
+
+Cada vez que el ratón se mueve, el evento `mousemove` es lanzado y se puede usar para obtener la posición del ratón.
+
+> \<style>
+.trail { 
+&nbsp;&nbsp;position: absolute;
+&nbsp;&nbsp;height: 6px; width: 6px;
+&nbsp;&nbsp;border-radius: 3px;
+&nbsp;&nbsp;background: rgb(248, 0, 0);
+}
+body {
+&nbsp;&nbsp;height: 300px;
+}
+\</style>
+\<body>
+\<script>
+var  dots = [];
+for (var  i = 0; i < 24; i++) {
+&nbsp;&nbsp;var  node = document.createElement("div");
+&nbsp;&nbsp;node.className = "trail";
+&nbsp;&nbsp;document.body.appendChild(node);
+&nbsp;&nbsp;dots.push(node);
+}
+var  currentDot = 0;
+addEventListener("mousemove", function(event) {
+&nbsp;&nbsp;var  dot = dots[currentDot];
+&nbsp;&nbsp;dot.style.left = (event.pageX - 3) + "px";
+&nbsp;&nbsp;dot.style.top = (event.pageY - 3) + "px";
+&nbsp;&nbsp;currentDot = (currentDot + 1) % dots.length;
+});
+\</script>
+\</body>
+
+# EVENTOS TOUCH
+
+Los touchpads y los móviles funcionan diferentes a los ratones, es por esto que se usan diferentes tipos de eventos aunque al principio se intentara falsear esto con eventos de ratón aunque no fuera la mejor manera.
+  
+Ahora se usan los eventos `touchstart`, `touchmove` y `touchend`. Estos tienen sus propios `clientX`,`clientY`,`pageX` y `pageY`.
+
+Enseña círculos rojos alrededor de donde tocas
+
+>\<style>
+  dot { position: absolute; display: block;
+  &nbsp;&nbsp;      border: 2px solid red; border-radius: 50px;
+   &nbsp;&nbsp;     height: 100px; width: 100px; }
+\</style>
+\<p>Touch this page\</p>
+\<script>
+  function update(event) {
+ &nbsp;&nbsp;   for (let dot; dot = document.querySelector("dot");) {
+ &nbsp;&nbsp;&nbsp;&nbsp;     dot.remove();
+ &nbsp;&nbsp;   }
+&nbsp;&nbsp;    for (let i = 0; i < event.touches.length; i++) {
+&nbsp;&nbsp; &nbsp;&nbsp;     let {pageX, pageY} = event.touches[i];
+&nbsp;&nbsp; &nbsp;&nbsp;     let dot = document.createElement("dot");
+&nbsp;&nbsp; &nbsp;&nbsp;      dot.style.left = (pageX - 50) + "px";
+&nbsp;&nbsp; &nbsp;&nbsp;     dot.style.top = (pageY - 50) + "px";
+&nbsp;&nbsp; &nbsp;&nbsp;     document.body.appendChild(dot);
+&nbsp;&nbsp;    }
+  }
+  window.addEventListener("touchstart", update);
+  window.addEventListener("touchmove", update);
+  window.addEventListener("touchend", update);
+\</script>
+
+Normalmente se usa `preventDefault` para evitar los comportamientos por defectos(que suelen incluir mover página).
+
+# EVENTOS DE DESPLAZAMIENTO
+
+Cuando nos desplazamos por la página se lanza un evento de `scroll`. Tiene varios usos, como por ejemplo para saber que está mirando actualmente el usuario, para mostrar una barra de progreso, etc.
+
+El siguiente código muestra una barra de progreso por encima del documento mientras te desplazas.
+>\<style>
+  #progress {
+ &nbsp;&nbsp;   border-bottom: 2px solid blue;
+  &nbsp;&nbsp;  width: 0;
+  &nbsp;&nbsp;  position: fixed;
+  &nbsp;&nbsp;  top: 0; left: 0;
+  }
+\</style>
+\<div id="progress">\</div>
+\<script>
+  document.body.appendChild(document.createTextNode(
+> &nbsp;&nbsp;   "supercalifragilisticexpialidocious ".repeat(1000)));
+>
+> let bar = document.querySelector("#progress");
+  window.addEventListener("scroll", () => {
+&nbsp;&nbsp;    let max = document.body.scrollHeight - innerHeight;
+&nbsp;&nbsp;    bar.style.width = `${(pageYOffset / max) ` 100}%`;
+  });
+\</script>
+
+# EVENTO DE ATENCIÓN
+
+Cuando un elemento obtiene atención se lanza el evento `focus` en este y cuando pierde la atención se lanza el evento `blur`. Estos dos eventos no se propagan a los padres.
+
+El siguiente ejemplo muestra el funcionamiento del focus en input.
+
+> \<p>Name: \<input type="text" data-help="Tu nombre">\</p>
+\<p>Age: \<input type="text" data-help="Tus años">\</p>
+\<p id="help">\</p>
+
+\<script>
+  let help = document.querySelector("#help");
+  let fields = document.querySelectorAll("input");
+  for (let field of Array.from(fields)) {
+&nbsp;&nbsp;    field.addEventListener("focus", event => {
+  &nbsp;&nbsp;&nbsp;&nbsp;    let text = event.target.getAttribute("data-help");
+ &nbsp;&nbsp;&nbsp;&nbsp;     help.textContent = text;
+  &nbsp;&nbsp;  });
+&nbsp;&nbsp;    field.addEventListener("blur", event => {
+  &nbsp;&nbsp; &nbsp;&nbsp;   help.textContent = "";
+&nbsp;&nbsp;    });
+  }
+\</script>
+
+
+
+# EVENTO DE CARGA
+
+Cuando una página se carga, se lanza el evento `load` en la ventana y en los objetos del cuerpo del documento. Esto se usa normalmente para organizar inicializaciones.
+
+Y cuando la página se cierra o se sale de ella se lanza el evento `beforeunload`, el objetivo principal es evitar que el usuario se salga sin perder trabajo no guardado. Si previenes el comportamiento por defecto y estableces el `returnValue` a un string, el explorador mostrará al usuario un texto preguntando si realmente quieren abandonar la página, aunque esta función se está dejando de permitir porque hay muchas paginas maliciosas que lo usan para confundir.
+
+# EVENTOS Y EL BUCLE DE EVENTOS
+
+Los eventos tienen que esperar a realizarse al que el resto de scripts que se están ejecutando se acaben. Esto puede ralentizar mucho ya que puede que hayan procesos muy grandes. Es por esto que los exploradores proporcionan algo llamado `web workers`. Un worker es un proceso de JavaScript que se ejecuta a la vez que el script principal.
+
+Por ejemplo, almacenamos en *code/worker.js* este código.
+>addEventListener("message", event => {
+ &nbsp;&nbsp; postMessage(event.data ` event.data);
+});
+
+Para evitar tener varios hilos tocando los mismos datos, los workers no comparten ningún dato con el script principal, además debes comunicarte con ellos por mensajes.
+Este código carga un wroker, le manda unos mensajes y muestra la salida.
+
+> let squareWorker = new Worker("code/worker.js");
+squareWorker.addEventListener("message", event => {
+ &nbsp;&nbsp; console.log("El worker respondió", event.data);
+});
+squareWorker.postMessage(10);
+squareWorker.postMessage(24);
+
+# TEMPORIZADORES
+
+Los temporizadores se pueden cancelar. Esto se hace almacenando el temporizador en una variable y despues llamando a `clearTimeout`
+
+>let bombTimer = setTimeout(() => {
+  &nbsp;&nbsp;console.log("BOOM!");
+}, 500);
+>
+>if (Math.random() < 0.5) {
+  &nbsp;&nbsp;console.log("Defused.");
+  &nbsp;&nbsp;clearTimeout(bombTimer);
 }
 
-let p = document.querySelector('p');
+# REBOTE
 
-series(
-  [
-     cb => loadScript('/script-1.js', cb),
-     cb => loadScript('/script-2.js', cb),
-     cb => loadScript('/script-3.js', cb)
-   ],
-   (err, results) => p.innerHTML = results.map(s => s.src).join("<br/>")
-);
-```
+Algunos tipos de eventos tienen el potencial de ser lanzados muchas veces seguidas sin parar. Cuando se manejan los eventos se debe tener cuidado de no hacer nada que consuma mucho tiempo.
+Si se necesita hacer algo que no es trivial en un manejador de eventos puedes usar `setTimeout` para asegurarte que no lo haces todo el rato. Esto es lo que se considera rebotar el evento.
 
-## Webpack
+Por ejemplo:
 
-Webpack is a **static module bundler** for JavaScript applications — it takes all the code from your application and makes it usable in a web browser. Modules are reusable chunks of code built from your app's JavaScript, node_modules, images, and the CSS styles which are packaged to be easily used in your website
+> \<textarea>Escribe algo\</textarea>
+\<script>
+  let textarea = document.querySelector("textarea");
+  let timeout;
+  textarea.addEventListener("input", () => {
+   &nbsp;&nbsp; clearTimeout(timeout);
+   &nbsp;&nbsp; timeout = setTimeout(() => console.log("Recibido"), 500);
+  });
+\</script>
 
-![](images/webpack.png)
-
-When Webpack processes your application, it builds a dependency graph which maps out the modules that your project needs and generates one or more bundles. A **bundle** is a distinct grouping of connected code that has been compiled and transformed for the browser.
-
-The solution used in this repo relies on [webpack](https://webpack.js.org/guides/getting-started/). 
-
-Read the [Getting Started](https://webpack.js.org/guides/getting-started/) tutorial.
-
-I have added [webpack-dev-server](https://webpack.js.org/configuration/dev-server/) 
-and a script `start:dev` to make it easier the development:
-
-```
-[~/.../load-script-seq(master)]$ npm run start:dev
-
-> sol@1.0.0 start:dev /Users/casiano/local/src/javascript/learning/async/load-script-seq
-> webpack-dev-server
-
-ℹ ｢wds｣: Project is running at http://localhost:9000/
-ℹ ｢wds｣: webpack output is served from /
-ℹ ｢wds｣: Content not from webpack is served from /Users/casiano/local/src/javascript/learning/async/load-script-seq/dist
-ℹ ｢wdm｣: Hash: bfb427cb5bbcc46dcb2d
-Version: webpack 4.41.6
-Time: 1305ms
-Built at: 2020-02-25 12:02:54
-      Asset      Size  Chunks             Chunk Names
-favicon.ico  15.1 KiB          [emitted]
-    main.js   679 KiB    main  [emitted]  main
-script-1.js  52 bytes          [emitted]
-script-2.js  61 bytes          [emitted]
-script-3.js  66 bytes          [emitted]
-Entrypoint main = main.js
-[0] multi (webpack)-dev-server/client?http://localhost:9000 ./src/index.js 40 bytes {main} [built]
-[./node_modules/ansi-html/index.js] 4.16 KiB {main} [built]
-[./node_modules/async-es/apply.js] 1.34 KiB {main} [built]
-[./node_modules/async-es/applyEach.js] 1.6 KiB {main} [built]
-[./node_modules/async-es/index.js] 9.83 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/index.js?http://localhost:9000] (webpack)-dev-server/client?http://localhost:9000 4.29 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/overlay.js] (webpack)-dev-server/client/overlay.js 3.51 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/socket.js] (webpack)-dev-server/client/socket.js 1.53 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/utils/createSocketUrl.js] (webpack)-dev-server/client/utils/createSocketUrl.js 2.91 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/utils/log.js] (webpack)-dev-server/client/utils/log.js 964 bytes {main} [built]
-[./node_modules/webpack-dev-server/client/utils/reloadApp.js] (webpack)-dev-server/client/utils/reloadApp.js 1.59 KiB {main} [built]
-[./node_modules/webpack-dev-server/client/utils/sendMessage.js] (webpack)-dev-server/client/utils/sendMessage.js 402 bytes {main} [built]
-[./node_modules/webpack-dev-server/node_modules/strip-ansi/index.js] (webpack)-dev-server/node_modules/strip-ansi/index.js 161 bytes {main} [built]
-[./node_modules/webpack/hot sync ^\.\/log$] (webpack)/hot sync nonrecursive ^\.\/log$ 170 bytes {main} [built]
-[./src/index.js] 574 bytes {main} [built]
-    + 123 hidden modules
-ℹ ｢wdm｣: Compiled successfully.
-```
-
-When we visit [http://localhost:9000/](http://localhost:9000/) we see something like this:
-
-![images/webpack-serving-loadscript.png](images/webpack-serving-loadscript.png)
-
-### Webpack Configuration File
-
-This is our webpack configuration file:
-
-```
-~/.../p3-t1-handling-events/sol]$ cat webpack.config.js
-```
-
-```js
-const path = require('path');
-const CopyPlugin = require('copy-webpack-plugin');
-
-module.exports = {
-  entry:  path.resolve('.', 'src', 'index.js'),
-  mode: 'development',
-  output: {
-    filename: 'main.js',
-    path: path.resolve(__dirname, 'dist'),
-  },
-  devServer: {
-    contentBase: path.join(__dirname, 'dist'),
-    compress: true,
-    port: 9000
-  },
-  plugins: [
-    new CopyPlugin([
-      { from: 'script-*.js' },
-      { from: "favicon.ico" }
-    ]),
-  ],
-};
-```
-
-We have configured:
-
-* the [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) to copy the required files onto the distribution directory `dist`
-* the [webpack-dev-server](https://webpack.js.org/configuration/dev-server/)
-
-## The build task
-
-```
-[~/.../p3-t1-handling-events/sol]$ tree dist/
-dist/
-└── index.html
-
-0 directories, 2 files
-[~/.../p3-t1-handling-events/sol]$ npm run build
-
-> sol@1.0.0 build /private/tmp/sol
-> webpack
-
-Hash: c0d97c54460908d8cf42
-Version: webpack 4.41.6
-Time: 487ms
-Built at: 2020-02-25 12:40:17
-      Asset      Size  Chunks             Chunk Names
-favicon.ico  15.1 KiB          [emitted]
-    main.js   323 KiB    main  [emitted]  main
-script-1.js  52 bytes          [emitted]
-script-2.js  61 bytes          [emitted]
-script-3.js  66 bytes          [emitted]
-Entrypoint main = main.js
-[./node_modules/webpack/buildin/global.js] (webpack)/buildin/global.js 472 bytes {main} [built]
-[./src/index.js] 574 bytes {main} [built]
-    + 105 hidden modules
-[[~/.../p3-t1-handling-events/sol]$ tree -s dist
-dist
-├── [      15492]  favicon.ico
-├── [        155]  index.html
-├── [     331143]  main.js
-├── [         52]  script-1.js
-├── [         61]  script-2.js
-└── [         66]  script-3.js
-
-0 directories, 6 files
-```
+Esto deja al usuario escribir, si en 500 milisegundos no ha recibido un evento desde el último input mostramos por pantalla un mensaje de que se recibió el mensaje, si no añadieramos el `setTimeout` mostrariamos el mensaje con cada input y acabaría siendo pesado para nuestra página y ralentizarían otros porcesos.
