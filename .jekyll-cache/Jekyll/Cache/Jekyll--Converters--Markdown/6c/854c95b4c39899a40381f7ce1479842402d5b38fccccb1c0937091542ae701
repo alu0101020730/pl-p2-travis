@@ -1,0 +1,382 @@
+I":G<h1 id="event-handlers">EVENT HANDLERS</h1>
+
+<p>El sistema notifica activamente cuando realizamos una acción, en los exploradores eso ocurre porque se registran funciones que recogen estos eventos.</p>
+
+<blockquote>
+  <p>&lt;p&gt;Este documento es para probar el addEventListener&lt;/p&gt;<br />
+ &lt;script&gt;<br />
+  window.addEventListener(“click”, () =&gt; {<br />
+    console.log(“¿Llamaste?”);<br />
+  });<br />
+ &lt;/script&gt;</p>
+</blockquote>
+
+<p>La variable <code class="highlighter-rouge">window</code> es un objeto que representa la ventana del explorador, cuando se le aplica el <code class="highlighter-rouge">addEventListener</code>, se ejecuta el segundo argumento si el evento ocurrido coincide con el tipo de evento del primer argumento.</p>
+
+<h1 id="events-and-dom-nodes">EVENTS AND DOM NODES</h1>
+
+<p>Todos los eventos se almacenan en el dominio en el que han ocurrido, por ejemplo, si el evento se registra en un botón, el <code class="highlighter-rouge">addEventListener</code> tendrá que ser llamado a partir de ese botón.</p>
+
+<blockquote>
+  <p>&lt;button&gt;Clickeame&lt;/button&gt;<br />
+&lt;p&gt;Ningun manejador de eventos aquí.&lt;/p&gt;<br />
+&lt;script&gt;<br />
+  let button = document.querySelector(“button”);<br />
+  button.addEventListener(“click”, () =&gt; {<br />
+     console.log(“Botón clickeado”);<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>También existe otro metodo que permite eliminar los eventos, <code class="highlighter-rouge">removeEventListener</code></p>
+
+<blockquote>
+  <p>&lt;button&gt;Una vez&lt;/button&gt;<br />
+&lt;script&gt;<br />
+  let button = document.querySelector(“button”);<br />
+  function once() {<br />
+    console.log(“Hecho”);<br />
+    button.removeEventListener(“click”, once);<br />
+  }<br />
+  button.addEventListener(“click”, once);<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>La función que se le pasa a <code class="highlighter-rouge">removeEventListener</code> tiene que ser la misma que se le pasa también a <code class="highlighter-rouge">addEventListener</code>.</p>
+
+<h1 id="event-objects">EVENT OBJECTS</h1>
+
+<p>Los objetos de evento almacenan información adicional que nos permite averiguar que tipo de acción se realizó, por ejemplo:</p>
+
+<blockquote>
+  <p>&lt;button&gt;Clickea con los 3 botones&lt;/button&gt;<br />
+&lt;script&gt;<br />
+  let button = document.querySelector(“button”);<br />
+  button.addEventListener(“mousedown”, event =&gt; {<br />
+       if (event.button == 0) {<br />
+            console.log(“Left button”);<br />
+       } else if (event.button == 1) {<br />
+            console.log(“Middle button”);<br />
+       } else if (event.button == 2) {<br />
+            console.log(“Right button”);<br />
+      }<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>La información almacenada también difiere por el tipo de objeto también.</p>
+
+<h1 id="propagación">PROPAGACIÓN</h1>
+
+<p>Para la mayor parte de tipos de eventos, los manejadores de eventos registrados en nodos con hijos, también recibirán el evento que pasó en el hijo. Por ejemplo si clickeas un botón dentro de un párrafo, el manejador de eventos del párrafo también verá el evento del click.</p>
+
+<p>Sin embargo, si el párrafo y el botón tienen manejadores de eventos, el más manejador más especifico(el del botón) irá primero. El evento se propaga hacia afuera, desde el nodo donde pasó hacia su nodo padre y así hasta llegar a la raíz del documento. Finalmente cuando todos han registrado el evento, se van ejecutando de uno en uno.</p>
+
+<p>Esta propagación puede ser detenida con el método <code class="highlighter-rouge">stopPropagation</code><br />
+Si clickeas con el botón izquierdo se detendrá la propagación, con el resto de botones se propagará hacia el párrafo.</p>
+
+<blockquote>
+  <p>&lt;p&gt;Un párrafo con un  &lt;button&gt;botón&lt;/button&gt;.&lt;/p&gt;<br />
+&lt;script&gt;<br />
+  let para = document.querySelector(“p”);<br />
+  let button = document.querySelector(“button”);<br />
+  para.addEventListener(“mousedown”, () =&gt; {<br />
+    console.log(“Párrafo”);<br />
+  });<br />
+  button.addEventListener(“mousedown”, event =&gt; {<br />
+      console.log(“Ratón”);<br />
+      if (event.button == 0) event.stopPropagation();<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>La mayor parte de los eventos tienen una propiedad de objetivo que dice en que nodo fue originado. Esto se usa para asegurar que no manejas el evento accidentalmente propagado. También se usa para reducir código, en vez de escribir varios manejadores para varios botones, puedes usar un solo manejador para todos.</p>
+
+<blockquote>
+  <p>&lt;button&gt;A&lt;/button&gt;<br />
+&lt;button&gt;B&lt;/button&gt;<br />
+&lt;button&gt;C&lt;/button&gt;<br />
+&lt;script&gt;<br />
+  document.body.addEventListener(“click”, event =&gt; {<br />
+     if (event.target.nodeName == “BUTTON”) {<br />
+          console.log(“Botón”, event.target.  textContent);<br />
+       }<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<h1 id="acciones-por-defecto">ACCIONES POR DEFECTO</h1>
+
+<p>Muchos eventos tienen acciones por defecto, como por ejemplo cuando clickeas un link, te redirige a la página, esto se puede evitar usando <code class="highlighter-rouge">preventDefault</code>.</p>
+
+<blockquote>
+  <p>&lt;a href=”https://developer.mozilla.org/”&gt;MDN&lt;/a&gt;<br />
+&lt;script&gt;<br />
+  let link = document.querySelector(“a”);<br />
+  link.addEventListener(“click”, event =&gt; {<br />
+      event.preventDefault();<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>Este link no te llevará a la página.<br />
+<strong>Dependiendo del explorador algunos eventos por defecto no pueden ser interceptados.</strong></p>
+
+<h2 id="eventos-de-teclado">EVENTOS DE TECLADO</h2>
+
+<p>Cuando presionas una tecla el explorador lanza un evento de “keydown”, cuando la levantas lanza “keyup”</p>
+
+<blockquote>
+  <p>&lt;p&gt;La página se vuelve violeta cuando presionas la tecla v&lt;/p&gt;<br />
+&lt;script&gt;<br />
+  window.addEventListener(“keydown”, event =&gt; {<br />
+    if (event.key == “v”) {<br />
+         document.body.style.background = “violet”;<br />
+      }<br />
+  });<br />
+  window.addEventListener(“keyup”, event =&gt; {<br />
+      if (event.key == “v”) {<br />
+          document.body.style.background = “”;<br />
+      }<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>Las combinaciones de teclas como shift, control, alt o cmd en mac también se aplican a los eventos de teclado, no es lo mismo presionar la tecla 1 que presionar shift-1 que devuelve “!”</p>
+
+<p>Dichas teclas también tienen su propio evento, <code class="highlighter-rouge">shiftKey</code>, <code class="highlighter-rouge">ctrlKey</code>, <code class="highlighter-rouge">altKey</code></p>
+
+<blockquote>
+  <p>&lt;p&gt;Presiona Control-Espacio&lt;/p&gt;<br />
+&lt;script&gt;<br />
+  window.addEventListener(“keydown”, event =&gt; {<br />
+    if (event.key == “ “ &amp;&amp; event.ctrlKey) {<br />
+      console.log(“Presionado”);<br />
+      }<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<h1 id="eventos-de-ratón">EVENTOS DE RATÓN</h1>
+
+<p>Presionar el botón del ratón lanza el evento <code class="highlighter-rouge">mousedown</code> y levantarlo <code class="highlighter-rouge">mouseup</code>
+Despues del evento <code class="highlighter-rouge">mouseup</code>, el evento <code class="highlighter-rouge">click</code> es lanzado en el nodo que contuvo el <code class="highlighter-rouge">mousedown</code> y el <code class="highlighter-rouge">mouseup</code>. Por ejemplo, si presiono dentro de un párrafo y suelto el botón en otro párrafo, el evento click será lanzado en el nodo que contiene ambos párrafos.</p>
+
+<p>Si es un doble click, se lanza el evento <code class="highlighter-rouge">dblclick</code>. Tambien se pueden obtener las coordenadas X e Y del click del evento lanzado por el ratón.
+` clientX y clientY contienen las coordenadas en pixeles relativas a la esquina superior izquierda de la ventana
+` pageX y pageY contienen las coordenadas en pixeles relativas a la esquina superior izquierda de todo el documento</p>
+
+<blockquote>
+  <p>&lt;style&gt;<br />
+  body {<br />
+      height: 200px;<br />
+      background: beige;<br />
+  }<br />
+  .dot {<br />
+      height: 8px; width: 8px;<br />
+      border-radius: 4px;<br />
+      background: blue;<br />
+      position: absolute;<br />
+  }<br />
+&lt;/style&gt;<br />
+&lt;script&gt;<br />
+  window.addEventListener(“click”, event =&gt; {<br />
+      let dot = document.createElement(“div”);<br />
+      dot.className = “dot”;<br />
+      dot.style.left = (event.pageX - 4) + “px”;<br />
+      dot.style.top = (event.pageY - 4) + “px”;<br />
+      document.body.appendChild(dot);<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<h1 id="movimiento-del-ratón">MOVIMIENTO DEL RATÓN</h1>
+
+<p>Cada vez que el ratón se mueve, el evento <code class="highlighter-rouge">mousemove</code> es lanzado y se puede usar para obtener la posición del ratón.</p>
+
+<blockquote>
+  <p>&lt;style&gt;<br />
+.trail { <br />
+  position: absolute;<br />
+  height: 6px; width: 6px;<br />
+  border-radius: 3px;<br />
+  background: rgb(248, 0, 0);<br />
+}<br />
+body {<br />
+  height: 300px;<br />
+}<br />
+&lt;/style&gt;<br />
+&lt;body&gt;<br />
+&lt;script&gt;<br />
+var  dots = [];<br />
+for (var  i = 0; i &lt; 24; i++) {<br />
+  var  node = document.createElement(“div”);<br />
+  node.className = “trail”;<br />
+  document.body.appendChild(node);<br />
+  dots.push(node);<br />
+}<br />
+var  currentDot = 0;<br />
+addEventListener(“mousemove”, function(event) {<br />
+  var  dot = dots[currentDot];<br />
+  dot.style.left = (event.pageX - 3) + “px”;<br />
+  dot.style.top = (event.pageY - 3) + “px”;<br />
+  currentDot = (currentDot + 1) % dots.length;<br />
+});<br />
+&lt;/script&gt;<br />
+&lt;/body&gt;</p>
+</blockquote>
+
+<h1 id="eventos-touch">EVENTOS TOUCH</h1>
+
+<p>Los touchpads y los móviles funcionan diferentes a los ratones, es por esto que se usan diferentes tipos de eventos aunque al principio se intentara falsear esto con eventos de ratón aunque no fuera la mejor manera.</p>
+
+<p>Ahora se usan los eventos <code class="highlighter-rouge">touchstart</code>, <code class="highlighter-rouge">touchmove</code> y <code class="highlighter-rouge">touchend</code>. Estos tienen sus propios <code class="highlighter-rouge">clientX</code>,<code class="highlighter-rouge">clientY</code>,<code class="highlighter-rouge">pageX</code> y <code class="highlighter-rouge">pageY</code>.</p>
+
+<p>Enseña círculos rojos alrededor de donde tocas</p>
+
+<blockquote>
+  <p>&lt;style&gt;<br />
+  dot { position: absolute; display: block;<br />
+          border: 2px solid red; border-radius: 50px;<br />
+          height: 100px; width: 100px; }<br />
+&lt;/style&gt;<br />
+&lt;p&gt;Touch this page&lt;/p&gt;<br />
+&lt;script&gt;<br />
+  function update(event) {<br />
+      for (let dot; dot = document.querySelector(“dot”);) {<br />
+          dot.remove();<br />
+      }<br />
+      for (let i = 0; i &lt; event.touches.length; i++) {<br />
+          let {pageX, pageY} = event.touches[i];<br />
+          let dot = document.createElement(“dot”);<br />
+           dot.style.left = (pageX - 50) + “px”;<br />
+          dot.style.top = (pageY - 50) + “px”;<br />
+          document.body.appendChild(dot);<br />
+      }<br />
+  }
+  window.addEventListener(“touchstart”, update);<br />
+  window.addEventListener(“touchmove”, update);<br />
+  window.addEventListener(“touchend”, update);<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>Normalmente se usa <code class="highlighter-rouge">preventDefault</code> para evitar los comportamientos por defectos(que suelen incluir mover página).</p>
+
+<h1 id="eventos-de-desplazamiento">EVENTOS DE DESPLAZAMIENTO</h1>
+
+<p>Cuando nos desplazamos por la página se lanza un evento de <code class="highlighter-rouge">scroll</code>. Tiene varios usos, como por ejemplo para saber que está mirando actualmente el usuario, para mostrar una barra de progreso, etc.</p>
+
+<p>El siguiente código muestra una barra de progreso por encima del documento mientras te desplazas.</p>
+<blockquote>
+  <p>&lt;style&gt;<br />
+  #progress {<br />
+      border-bottom: 2px solid blue;<br />
+      width: 0;<br />
+      position: fixed;<br />
+      top: 0; left: 0;<br />
+  }<br />
+&lt;/style&gt;<br />
+&lt;div id=”progress”&gt;&lt;/div&gt;<br />
+&lt;script&gt;<br />
+  document.body.appendChild(document.createTextNode(<br />
+     “supercalifragilisticexpialidocious “.repeat(1000)));</p>
+
+  <p>let bar = document.querySelector(“#progress”);<br />
+  window.addEventListener(“scroll”, () =&gt; {<br />
+      let max = document.body.scrollHeight - innerHeight;<br />
+      bar.style.width = <code class="highlighter-rouge">${(pageYOffset / max) </code> 100}%`;<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<h1 id="evento-de-atención">EVENTO DE ATENCIÓN</h1>
+
+<p>Cuando un elemento obtiene atención se lanza el evento <code class="highlighter-rouge">focus</code> en este y cuando pierde la atención se lanza el evento <code class="highlighter-rouge">blur</code>. Estos dos eventos no se propagan a los padres.</p>
+
+<p>El siguiente ejemplo muestra el funcionamiento del focus en input.</p>
+
+<blockquote>
+  <p>&lt;p&gt;Name: &lt;input type=”text” data-help=”Tu nombre”&gt;&lt;/p&gt;<br />
+&lt;p&gt;Age: &lt;input type=”text” data-help=”Tus años”&gt;&lt;/p&gt;<br />
+&lt;p id=”help”&gt;&lt;/p&gt;</p>
+</blockquote>
+
+<p>&lt;script&gt;<br />
+  let help = document.querySelector(“#help”);<br />
+  let fields = document.querySelectorAll(“input”);<br />
+  for (let field of Array.from(fields)) {<br />
+      field.addEventListener(“focus”, event =&gt; {<br />
+          let text = event.target.getAttribute(“data-help”);<br />
+          help.textContent = text;<br />
+      });<br />
+      field.addEventListener(“blur”, event =&gt; {<br />
+          help.textContent = “”;<br />
+      });<br />
+  }<br />
+&lt;/script&gt;</p>
+
+<h1 id="evento-de-carga">EVENTO DE CARGA</h1>
+
+<p>Cuando una página se carga, se lanza el evento <code class="highlighter-rouge">load</code> en la ventana y en los objetos del cuerpo del documento. Esto se usa normalmente para organizar inicializaciones.</p>
+
+<p>Y cuando la página se cierra o se sale de ella se lanza el evento <code class="highlighter-rouge">beforeunload</code>, el objetivo principal es evitar que el usuario se salga sin perder trabajo no guardado. Si previenes el comportamiento por defecto y estableces el <code class="highlighter-rouge">returnValue</code> a un string, el explorador mostrará al usuario un texto preguntando si realmente quieren abandonar la página, aunque esta función se está dejando de permitir porque hay muchas paginas maliciosas que lo usan para confundir.</p>
+
+<h1 id="eventos-y-el-bucle-de-eventos">EVENTOS Y EL BUCLE DE EVENTOS</h1>
+
+<p>Los eventos tienen que esperar a realizarse al que el resto de scripts que se están ejecutando se acaben. Esto puede ralentizar mucho ya que puede que hayan procesos muy grandes. Es por esto que los exploradores proporcionan algo llamado <code class="highlighter-rouge">web workers</code>. Un worker es un proceso de JavaScript que se ejecuta a la vez que el script principal.</p>
+
+<p>Por ejemplo, almacenamos en <em>code/worker.js</em> este código.</p>
+<blockquote>
+  <p>addEventListener(“message”, event =&gt; {<br />
+    postMessage(event.data ` event.data);<br />
+});</p>
+</blockquote>
+
+<p>Para evitar tener varios hilos tocando los mismos datos, los workers no comparten ningún dato con el script principal, además debes comunicarte con ellos por mensajes.
+Este código carga un wroker, le manda unos mensajes y muestra la salida.</p>
+
+<blockquote>
+  <p>let squareWorker = new Worker(“code/worker.js”);<br />
+squareWorker.addEventListener(“message”, event =&gt; {<br />
+    console.log(“El worker respondió”, event.data);<br />
+});<br />
+squareWorker.postMessage(10);<br />
+squareWorker.postMessage(24);</p>
+</blockquote>
+
+<h1 id="temporizadores">TEMPORIZADORES</h1>
+
+<p>Los temporizadores se pueden cancelar. Esto se hace almacenando el temporizador en una variable y despues llamando a <code class="highlighter-rouge">clearTimeout</code></p>
+
+<blockquote>
+  <p>let bombTimer = setTimeout(() =&gt; {<br />
+    console.log(“BOOM!”);<br />
+}, 500);</p>
+
+  <p>if (Math.random() &lt; 0.5) {<br />
+    console.log(“Defused.”);<br />
+    clearTimeout(bombTimer);<br />
+}</p>
+</blockquote>
+
+<h1 id="rebote">REBOTE</h1>
+
+<p>Algunos tipos de eventos tienen el potencial de ser lanzados muchas veces seguidas sin parar. Cuando se manejan los eventos se debe tener cuidado de no hacer nada que consuma mucho tiempo.
+Si se necesita hacer algo que no es trivial en un manejador de eventos puedes usar <code class="highlighter-rouge">setTimeout</code> para asegurarte que no lo haces todo el rato. Esto es lo que se considera rebotar el evento.</p>
+
+<p>Por ejemplo:</p>
+
+<blockquote>
+  <p>&lt;textarea&gt;Escribe algo&lt;/textarea&gt;<br />
+&lt;script&gt;<br />
+  let textarea = document.querySelector(“textarea”);<br />
+  let timeout;<br />
+  textarea.addEventListener(“input”, () =&gt; {<br />
+      clearTimeout(timeout);<br />
+      timeout = setTimeout(() =&gt; console.log(“Recibido”), 500);<br />
+  });<br />
+&lt;/script&gt;</p>
+</blockquote>
+
+<p>Esto deja al usuario escribir, si en 500 milisegundos no ha recibido un evento desde el último input mostramos por pantalla un mensaje de que se recibió el mensaje, si no añadieramos el <code class="highlighter-rouge">setTimeout</code> mostrariamos el mensaje con cada input y acabaría siendo pesado para nuestra página y ralentizarían otros porcesos.</p>
+:ET

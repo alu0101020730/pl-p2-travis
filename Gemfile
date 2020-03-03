@@ -1,6 +1,9 @@
 # Fuente de las gemas
 source "https://rubygems.org"
 
+# HTMLProofer
+gem 'html-proofer'
+
 # Jekyll
  gem "jekyll"
 
@@ -10,5 +13,9 @@ source "https://rubygems.org"
 # Plugins
 group :jekyll_plugins do
   gem "jekyll-asciinema"
+end
+
+group :test do
+  gem "html-proofer"
 end
 
