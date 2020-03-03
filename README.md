@@ -2,11 +2,11 @@
 
 El sistema notifica activamente cuando realizamos una acción, en los exploradores eso ocurre porque se registran funciones que recogen estos eventos.
 
-> \<p>Este documento es para probar el addEventListener\</p>
- \<script>
-  window.addEventListener("click", () => {
- &nbsp;&nbsp; console.log("¿Llamaste?");
-  });
+> \<p>Este documento es para probar el addEventListener\</p>  
+ \<script>  
+  window.addEventListener("click", () => {  
+ &nbsp;&nbsp; console.log("¿Llamaste?");  
+  });  
  \</script>
 
 La variable `window` es un objeto que representa la ventana del explorador, cuando se le aplica el `addEventListener`, se ejecuta el segundo argumento si el evento ocurrido coincide con el tipo de evento del primer argumento.
