@@ -1,6 +1,7 @@
 language: ruby
 
 script:
+ - git checkout gh-pages
  - bundle exec rake test
 
 cache:
