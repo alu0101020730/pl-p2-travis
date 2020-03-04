@@ -1,4 +1,4 @@
-language: ruby
+language: generic
 
 script:
  - bundle exec rake test
