@@ -1,9 +1,10 @@
-language: generic
+language: ruby
 
 before_install:
   - gem install bundler
 
 script:
+ - bundle install
  - bundle exec rake test
 
 cache:
