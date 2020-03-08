@@ -15,7 +15,7 @@ task :test => [:build, 'html:check'] do
     }
   }
   begin
-    HTMLProofer.check_directory("./_site/2020/03/03", options).run
+    HTMLProofer.check_directory("./_posts/2020/03/03", options).run
   rescue => msg
     puts "#{msg}"
   end
